@@ -1,8 +1,10 @@
 
 # Program: Single player snake game
 # Library with PyGame functions
+import threading
 import pygame
 import random
+import time
 # Define constants (in CAPITALS!) for our game settings
 MAX_X = 640  # Define the size of the game display window in pixels
 MAX_Y = 640
@@ -20,8 +22,16 @@ display = pygame.display.set_mode((MAX_X, MAX_Y))
 clock = pygame.time.Clock()
 #other things
 backimg = pygame.image.load('back.png')
-#make score
+#make scoreD
 font = pygame.font.Font(None, 36)
+
+class SpedThread(threading.Thread):
+    def run(self):
+        global FPS
+        FPS = 25
+        time.sleep(3)
+        FPS = 15
+
 
 
 class Snake:
@@ -40,15 +50,31 @@ class apple:
     x = random.randint(1, 40) * 16
     y = random.randint(1, 40) * 16
     img = pygame.image.load('apple.png').convert_alpha()
+    
+class speed:
+    x = random.randint(1, 40) * 16
+    y = random.randint(1, 40) * 16
+    img = pygame.image.load('speed.png').convert_alpha()
 
 class Game:
     # States are "intro", "playing", "paused", "game_over", "quit"
     state = "intro"
     score = int(0)
 
+speedblit = 0
+
 def applechange():
+    global speedblit
     apple.x = random.randint(1, 39) * 16
     apple.y = random.randint(1, 39) * 16
+    if random.randint(1, 4) == 1:
+        speedblit = 1
+    else:
+        speedblit = 0
+    
+def iamspeed(): 
+    speed.x = random.randint(1, 39) * 16
+    speed.y = random.randint(1, 39) * 16
 
 def draw_text(text, colour, y_displace=0, size=24):
     font = pygame.font.SysFont("comicsanms", size)  # Generate the font at the specified size (24 is smallish, 48 is medium, 80 for titles)
@@ -107,17 +133,25 @@ def game_update():
     if apple.x == Snake.x and apple.y == Snake.y:
         applechange()
         Game.score += int(1)
+
     else:
         Snake.tail.pop(0)
         Snake.taildirect.append((Snake.xchange, Snake.ychange))
     print(Snake.tail)
-    
-    if Snake.x < 0 or Snake.x > 640 or Snake.y < 0 or Snake.y > 640:
+
+    if speed.x == Snake.x and speed.y == Snake.y and speedblit == 1:
+            global FPS
+            iamspeed()
+            spedthread = SpedThread()
+            spedthread.start()
+        
+        
+    if Snake.x < 0 or Snake.x > 639 or Snake.y < 0 or Snake.y > 639:
         Game.state = "game_over"
 
     if (Snake.x, Snake.y) in Snake.tail:
         Game.state = "game_over"
-        print('e')
+        
 def game_over():
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -136,17 +170,21 @@ def game_over():
     
                 
 def restart():
+    global speedblit
     Snake.x = MAX_X / 2
     Snake.y = MAX_X / 2
     Snake.xchange = 0
     Snake.ychange = 0
     Snake.tail = []
     Game.score = 0
+    speedblit = 0
+    iamspeed()
     applechange()
     Game.state = 'playing'
 
 # Draw all the sprites that make up the game
 def game_draw():
+    global speedblit
     global score_text
     # Draw the snake 🐍🐍🐍
     head = Snake.img
@@ -163,6 +201,8 @@ def game_draw():
 
     display.blit(head, (Snake.x, Snake.y))
     display.blit(aple, (apple.x, apple.y))
+    if speedblit == 1:
+            display.blit(speed.img, (speed.x, speed.y))
 
     for xy in Snake.tail:
         display.blit(Snake.body, [xy[0], xy[1]])
